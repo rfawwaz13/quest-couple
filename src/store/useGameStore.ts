@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export interface Question {
   id: number;
@@ -33,10 +34,8 @@ interface GameState {
   history: ScoreRecord[];
   totalQuestionsAsked: number;
   currentRoundScores: { player1: number | null; player2: number | null };
-  
   photos: string[];
   lastIceBreakerMilestone: number;
-  // STATE BARU: Antrean intermezo
   iceBreakerQueue: ('photo' | 'story')[];
 
   setQuestions: (q: Question[]) => void;
@@ -47,118 +46,142 @@ interface GameState {
   skipQuestion: () => void;
   saveIceBreakerPhoto: (photoBase64: string) => void;
   nextIceBreaker: () => void;
+  resetGame: () => void; // FUNGSI BARU UNTUK MENGHAPUS SAVE DATA
 }
 
-export const useGameStore = create<GameState>((set, get) => ({
-  step: 'upload',
-  questions: [],
-  players: [],
-  turnIndex: 0,
-  activeQuestion: null,
-  answeringPlayerIndex: null,
-  isScoringPhase: false,
-  history: [],
-  totalQuestionsAsked: 0,
-  currentRoundScores: { player1: null, player2: null },
-  photos: [],
-  lastIceBreakerMilestone: 0,
-  iceBreakerQueue: [],
-
-  setQuestions: (questions) => set({ questions, step: 'setup' }),
-  setPlayers: (players) => set({ players }),
-  setStep: (step) => set({ step }),
-
-  rollDice: () => {
-    const state = get();
-    const availableQuestions = state.questions.filter(q => !q.discussed);
-    if (availableQuestions.length === 0) {
-      set({ step: 'summary' });
-      return;
-    }
-
-    const diceValue = Math.floor(Math.random() * 6) + 1;
-    const randomQ = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
-
-    set((prev) => ({
-      players: prev.players.map((p, i) => 
-        i === prev.turnIndex ? { ...p, position: p.position + diceValue } : p
-      ),
-      activeQuestion: randomQ,
-      answeringPlayerIndex: prev.turnIndex,
+export const useGameStore = create<GameState>()(
+  persist(
+    (set, get) => ({
+      step: 'upload',
+      questions: [],
+      players: [],
+      turnIndex: 0,
+      activeQuestion: null,
+      answeringPlayerIndex: null,
       isScoringPhase: false,
-      step: 'question',
-      totalQuestionsAsked: prev.totalQuestionsAsked + 1,
-      currentRoundScores: { player1: null, player2: null }
-    }));
-  },
+      history: [],
+      totalQuestionsAsked: 0,
+      currentRoundScores: { player1: null, player2: null },
+      photos: [],
+      lastIceBreakerMilestone: 0,
+      iceBreakerQueue: [],
 
-  submitScore: (scoreValue) => {
-    const state = get();
-    const isP1Answering = state.answeringPlayerIndex === 0;
-    const newRoundScores = {
-      ...state.currentRoundScores,
-      [isP1Answering ? 'player1' : 'player2']: scoreValue
-    };
+      setQuestions: (questions) => set({ questions, step: 'setup' }),
+      setPlayers: (players) => set({ players }),
+      setStep: (step) => set({ step }),
 
-    if (newRoundScores.player1 !== null && newRoundScores.player2 !== null) {
-      const updatedQuestions = state.questions.map(q => 
-        q.id === state.activeQuestion?.id ? { ...q, discussed: true } : q
-      );
+      rollDice: () => {
+        const state = get();
+        const availableQuestions = state.questions.filter(q => !q.discussed);
+        if (availableQuestions.length === 0) {
+          set({ step: 'summary' });
+          return;
+        }
 
-      const answeredCount = updatedQuestions.filter(q => q.discussed).length;
-      let newQueue: ('photo' | 'story')[] = [];
+        const diceValue = Math.floor(Math.random() * 6) + 1;
+        const randomQ = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
 
-      // LOGIKA BARU: 
-      // Kelipatan 10 -> Foto DAN Cerita
-      // Kelipatan 5 (tapi bukan 10) -> Cerita saja
-      if (answeredCount % 10 === 0) {
-        newQueue = ['photo', 'story'];
-      } else if (answeredCount % 5 === 0) {
-        newQueue = ['story'];
+        set((prev) => ({
+          players: prev.players.map((p, i) => 
+            i === prev.turnIndex ? { ...p, position: p.position + diceValue } : p
+          ),
+          activeQuestion: randomQ,
+          answeringPlayerIndex: prev.turnIndex,
+          isScoringPhase: false,
+          step: 'question',
+          totalQuestionsAsked: prev.totalQuestionsAsked + 1,
+          currentRoundScores: { player1: null, player2: null }
+        }));
+      },
+
+      submitScore: (scoreValue) => {
+        const state = get();
+        const isP1Answering = state.answeringPlayerIndex === 0;
+        const newRoundScores = {
+          ...state.currentRoundScores,
+          [isP1Answering ? 'player1' : 'player2']: scoreValue
+        };
+
+        if (newRoundScores.player1 !== null && newRoundScores.player2 !== null) {
+          const updatedQuestions = state.questions.map(q => 
+            q.id === state.activeQuestion?.id ? { ...q, discussed: true } : q
+          );
+
+          const answeredCount = updatedQuestions.filter(q => q.discussed).length;
+          let newQueue: ('photo' | 'story')[] = [];
+
+          if (answeredCount % 10 === 0) {
+            newQueue = ['photo', 'story'];
+          } else if (answeredCount % 5 === 0) {
+            newQueue = ['story'];
+          }
+
+          set({
+            questions: updatedQuestions,
+            history: [...state.history, {
+              question: state.activeQuestion?.text || '',
+              category: state.activeQuestion?.category || '',
+              player1Score: newRoundScores.player1,
+              player2Score: newRoundScores.player2,
+            }],
+            activeQuestion: null,
+            answeringPlayerIndex: null,
+            currentRoundScores: { player1: null, player2: null },
+            step: newQueue.length > 0 ? 'icebreaker' : 'playing',
+            iceBreakerQueue: newQueue,
+            lastIceBreakerMilestone: answeredCount,
+            turnIndex: state.turnIndex === 0 ? 1 : 0
+          });
+        } else {
+          set({
+            currentRoundScores: newRoundScores,
+            answeringPlayerIndex: state.answeringPlayerIndex === 0 ? 1 : 0
+          });
+        }
+      },
+
+      saveIceBreakerPhoto: (photoBase64) => {
+        const state = get();
+        const remainingQueue = state.iceBreakerQueue.slice(1);
+        set({
+          photos: [...state.photos, photoBase64],
+          iceBreakerQueue: remainingQueue,
+          step: remainingQueue.length > 0 ? 'icebreaker' : 'playing'
+        });
+      },
+
+      nextIceBreaker: () => {
+        const state = get();
+        const remainingQueue = state.iceBreakerQueue.slice(1);
+        set({
+          iceBreakerQueue: remainingQueue,
+          step: remainingQueue.length > 0 ? 'icebreaker' : 'playing'
+        });
+      },
+
+      skipQuestion: () => set({ activeQuestion: null, step: 'playing', turnIndex: get().turnIndex === 0 ? 1 : 0 }),
+
+      // Fungsi untuk mengosongkan save data saat game selesai / di-reset
+      resetGame: () => {
+        set({
+          step: 'upload',
+          questions: [],
+          players: [],
+          turnIndex: 0,
+          activeQuestion: null,
+          answeringPlayerIndex: null,
+          isScoringPhase: false,
+          history: [],
+          totalQuestionsAsked: 0,
+          currentRoundScores: { player1: null, player2: null },
+          photos: [],
+          lastIceBreakerMilestone: 0,
+          iceBreakerQueue: [],
+        });
       }
-
-      set({
-        questions: updatedQuestions,
-        history: [...state.history, {
-          question: state.activeQuestion?.text || '',
-          category: state.activeQuestion?.category || '',
-          player1Score: newRoundScores.player1,
-          player2Score: newRoundScores.player2,
-        }],
-        activeQuestion: null,
-        answeringPlayerIndex: null,
-        currentRoundScores: { player1: null, player2: null },
-        step: newQueue.length > 0 ? 'icebreaker' : 'playing',
-        iceBreakerQueue: newQueue,
-        lastIceBreakerMilestone: answeredCount,
-        turnIndex: state.turnIndex === 0 ? 1 : 0
-      });
-    } else {
-      set({
-        currentRoundScores: newRoundScores,
-        answeringPlayerIndex: state.answeringPlayerIndex === 0 ? 1 : 0
-      });
+    }),
+    {
+      name: 'couple-quest-storage', // Nama file save data di browser kalian
     }
-  },
-
-  saveIceBreakerPhoto: (photoBase64) => {
-    const state = get();
-    const remainingQueue = state.iceBreakerQueue.slice(1);
-    set({
-      photos: [...state.photos, photoBase64],
-      iceBreakerQueue: remainingQueue,
-      step: remainingQueue.length > 0 ? 'icebreaker' : 'playing'
-    });
-  },
-
-  nextIceBreaker: () => {
-    const state = get();
-    const remainingQueue = state.iceBreakerQueue.slice(1);
-    set({
-      iceBreakerQueue: remainingQueue,
-      step: remainingQueue.length > 0 ? 'icebreaker' : 'playing'
-    });
-  },
-
-  skipQuestion: () => set({ activeQuestion: null, step: 'playing', turnIndex: get().turnIndex === 0 ? 1 : 0 })
-}));
+  )
+);

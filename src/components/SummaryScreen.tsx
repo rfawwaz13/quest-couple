@@ -5,7 +5,7 @@ import { exportToExcel } from '../utils/reportGenerator';
 import { Avatar } from './Avatar';
 
 export const SummaryScreen = () => {
-  const { players, history, photos } = useGameStore();
+  const { players, history, photos, resetGame } = useGameStore(); // IMPORT resetGame
 
   const p1Total = history.reduce((sum, record) => sum + (Number(record.player1Score) || 0), 0);
   const p2Total = history.reduce((sum, record) => sum + (Number(record.player2Score) || 0), 0);
@@ -19,7 +19,6 @@ export const SummaryScreen = () => {
   if (p1AvgNum > p2AvgNum) winnerText = `${players[0]?.name || 'Player 1'} Lebih Terbuka! 🎉`;
   if (p2AvgNum > p1AvgNum) winnerText = `${players[1]?.name || 'Player 2'} Lebih Terbuka! 🎉`;
 
-  // Fungsi untuk download 1 foto spesifik
   const handleDownloadSinglePhoto = (photoDataUrl: string, index: number) => {
     const link = document.createElement('a');
     link.href = photoDataUrl;
@@ -29,10 +28,8 @@ export const SummaryScreen = () => {
     document.body.removeChild(link);
   };
 
-  // Fungsi untuk download semua foto sekaligus (Batch Download)
   const handleDownloadAllPhotos = () => {
     photos.forEach((photo, index) => {
-      // Memberi sedikit jeda (timeout) agar browser tidak menganggapnya sebagai spam pop-up
       setTimeout(() => {
         handleDownloadSinglePhoto(photo, index);
       }, index * 300); 
@@ -79,7 +76,6 @@ export const SummaryScreen = () => {
             </button>
           )}
 
-          {/* TOMBOL BARU: Download Semua Foto */}
           {photos.length > 0 && (
             <button 
               onClick={handleDownloadAllPhotos}
@@ -89,16 +85,16 @@ export const SummaryScreen = () => {
             </button>
           )}
 
+          {/* UPDATE: Gunakan resetGame dari store, bukan window.reload */}
           <button 
-            onClick={() => window.location.reload()}
+            onClick={() => resetGame()}
             className="w-full py-4 bg-white/60 text-gray-800 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-white/80 transition-colors mt-2"
           >
-            <RotateCcw size={20} /> Main Lagi
+            <RotateCcw size={20} /> Main Lagi (Reset Data)
           </button>
         </div>
       </motion.div>
 
-      {/* GALLERY PHOTO BOOTH */}
       {photos.length > 0 && (
         <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="w-full max-w-2xl bg-white/40 backdrop-blur-xl p-8 rounded-[3rem] border border-white/50 shadow-2xl text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-8">
@@ -111,8 +107,6 @@ export const SummaryScreen = () => {
               <div key={idx} className="bg-white p-3 pb-4 rounded-sm shadow-xl border border-gray-200 transform hover:scale-105 transition-transform rotate-1 flex flex-col" style={{ boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
                 <div className="aspect-square bg-gray-100 overflow-hidden mb-3 relative group">
                   <img src={photo} alt={`Memory ${idx+1}`} className="w-full h-full object-cover" />
-                  
-                  {/* OVERLAY DOWNLOAD: Muncul saat foto di-hover (Desktop) atau bisa langsung diklik di HP */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <button 
                       onClick={() => handleDownloadSinglePhoto(photo, idx)}
@@ -122,11 +116,8 @@ export const SummaryScreen = () => {
                     </button>
                   </div>
                 </div>
-                
                 <div className="flex justify-between items-center px-1">
                   <p className="text-xs font-bold text-gray-400 font-handwriting">Jeda ke-{idx + 1}</p>
-                  
-                  {/* Tombol Download Kecil untuk Mobile */}
                   <button 
                     onClick={() => handleDownloadSinglePhoto(photo, idx)}
                     className="md:hidden text-gray-400 hover:text-primary"
