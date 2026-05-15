@@ -37,7 +37,12 @@ export const SummaryScreen = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-romantic-gradient p-6 overflow-y-auto py-12">
+    // <div className="flex flex-col items-center justify-center min-h-screen bg-romantic-gradient p-6 overflow-y-auto py-12">
+    // <div className="flex flex-col items-center justify-center min-h-screen bg-[url('/bg-couple.jpg')] bg-cover bg-center bg-fixed p-6 overflow-y-auto py-12">
+    <div 
+      className="flex flex-col items-center justify-center min-h-screen bg-cover bg-center bg-fixed p-6 overflow-y-auto py-12"
+      style={{ backgroundImage: "url('/bg-couple.jpg')" }}
+    >
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white/40 backdrop-blur-xl p-10 rounded-[3rem] w-full max-w-2xl border border-white/50 shadow-2xl text-center mb-8 mt-8">
         
         {p1AvgNum === p2AvgNum ? (

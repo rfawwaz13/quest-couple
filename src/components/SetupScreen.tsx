@@ -72,7 +72,12 @@ export const SetupScreen = () => {
   );
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-romantic-gradient p-4 overflow-y-auto">
+    // <div className="flex flex-col items-center justify-center min-h-screen bg-romantic-gradient p-4 overflow-y-auto">
+    // <div className="flex flex-col items-center justify-center min-h-screen bg-[url('/bg-couple.jpg')] bg-cover bg-center bg-fixed p-4 overflow-y-auto">
+    <div 
+      className="flex flex-col items-center justify-center min-h-screen bg-cover bg-center bg-fixed p-4 overflow-y-auto"
+      style={{ backgroundImage: "url('/bg-couple.jpg')" }}
+    >
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white/40 backdrop-blur-xl p-8 rounded-3xl w-full max-w-xl border border-white/50 shadow-2xl my-8">
         <h2 className="text-3xl font-black text-center text-gray-800 mb-8">Siapa yang main? 🎮</h2>
         

@@ -11,7 +11,12 @@ function App() {
   const { step, totalQuestionsAsked, setStep } = useGameStore();
 
   return (
-    <div className="min-h-screen bg-romantic-gradient overflow-x-hidden font-sans text-gray-900">
+    // <div className="min-h-screen bg-romantic-gradient overflow-x-hidden font-sans text-gray-900">
+    // <div className="min-h-screen bg-[url('/bg-couple.jpg')] bg-cover bg-center bg-fixed overflow-x-hidden font-sans text-gray-900">
+    <div 
+      className="min-h-screen bg-cover bg-center bg-fixed overflow-x-hidden font-sans text-gray-900"
+      style={{ backgroundImage: "url('/bg-couple.jpg')" }}
+    >
       
       {(step === 'playing' || step === 'question') && (
         <motion.div 
