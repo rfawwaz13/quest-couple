@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Forward, Sparkles, Image as ImageIcon, Upload, BookHeart, HeartHandshake, Globe } from 'lucide-react';
+import { Camera, Forward, BookHeart, Globe } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import Webcam from 'react-webcam';
 
