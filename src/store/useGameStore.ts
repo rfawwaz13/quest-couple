@@ -34,9 +34,10 @@ interface GameState {
   totalQuestionsAsked: number;
   currentRoundScores: { player1: number | null; player2: number | null };
   
-  // State Baru untuk Ice Breaker & Photo Booth
   photos: string[];
   lastIceBreakerMilestone: number;
+  // State Baru: Menentukan jenis ice breaker
+  iceBreakerType: 'photo' | 'story' | null;
 
   setQuestions: (q: Question[]) => void;
   setPlayers: (p: Player[]) => void;
@@ -45,7 +46,7 @@ interface GameState {
   submitScore: (score: number) => void;
   skipQuestion: () => void;
   saveIceBreakerPhoto: (photoBase64: string) => void;
-  skipIceBreaker: () => void;
+  resumeFromIceBreaker: () => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -61,6 +62,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   currentRoundScores: { player1: null, player2: null },
   photos: [],
   lastIceBreakerMilestone: 0,
+  iceBreakerType: null,
 
   setQuestions: (questions) => set({ questions, step: 'setup' }),
   setPlayers: (players) => set({ players }),
@@ -115,9 +117,14 @@ export const useGameStore = create<GameState>((set, get) => ({
         q.id === state.activeQuestion?.id ? { ...q, discussed: true } : q
       );
 
-      // LOGIC ICE BREAKER: Cek apakah sudah kelipatan 10 pertanyaan yang terjawab
+      // LOGIC ICE BREAKER: Cek Milestone & Tentukan Tipenya
       const answeredCount = updatedQuestions.filter(q => q.discussed).length;
-      const isMilestone = answeredCount > 0 && answeredCount % 2 === 0 && answeredCount !== state.lastIceBreakerMilestone;
+      const milestoneInterval = 10; // Setiap 10 pertanyaan
+      const isMilestone = answeredCount > 0 && answeredCount % milestoneInterval === 0 && answeredCount !== state.lastIceBreakerMilestone;
+      
+      const milestoneMultiplier = answeredCount / milestoneInterval;
+      // Ganjil (10, 30) = photo, Genap (20, 40) = story
+      const nextIceBreakerType = isMilestone ? (milestoneMultiplier % 2 !== 0 ? 'photo' : 'story') : null;
 
       set({
         questions: updatedQuestions,
@@ -126,11 +133,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         answeringPlayerIndex: null,
         currentRoundScores: { player1: null, player2: null },
         isScoringPhase: false,
-        // Pindah ke layar Ice Breaker jika menyentuh milestone
         step: isMilestone ? 'icebreaker' : 'playing',
         turnIndex: state.turnIndex === 0 ? 1 : 0,
-        // Update milestone agar tidak berulang di angka yang sama
-        ...(isMilestone ? { lastIceBreakerMilestone: answeredCount } : {})
+        ...(isMilestone ? { lastIceBreakerMilestone: answeredCount, iceBreakerType: nextIceBreakerType } : {})
       });
     } else {
       set({
@@ -156,11 +161,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     set({
       photos: [...state.photos, photoBase64],
-      step: 'playing' // Lanjut main setelah foto
+      step: 'playing',
+      iceBreakerType: null
     });
   },
 
-  skipIceBreaker: () => {
-    set({ step: 'playing' });
+  resumeFromIceBreaker: () => {
+    set({ step: 'playing', iceBreakerType: null });
   }
 }));
